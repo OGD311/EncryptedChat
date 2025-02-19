@@ -18,7 +18,7 @@ clients = {}  # Store client sockets and their public keys
 def broadcast(sender_address, message):
     """ Encrypt and send the message to all connected clients except sender. """
     for address, (client_socket, client_public_key) in clients.items():
-        if address != sender_address:  # Don't send message back to the sender
+        if address != sender_address:
             try:
                 encrypted_message = client_public_key.encrypt(
                     message.encode(),
@@ -28,9 +28,23 @@ def broadcast(sender_address, message):
             except Exception as e:
                 print(f"[ERROR SENDING TO {address}] {e}")
 
+def server_message(message):
+    """ Broadcast a message from the server to all connected clients. """
+    print(f"[SERVER MESSAGE] {message}")
+    for address, (client_socket, client_public_key) in clients.items():
+        try:
+            encrypted_message = client_public_key.encrypt(
+                message.encode(),
+                padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None)
+            )
+            client_socket.send(encrypted_message)
+        except Exception as e:
+            print(f"[ERROR SENDING SERVER MESSAGE TO {address}] {e}")
+
 def handle_client(client_socket, address):
     """ Handle communication with a connected client. """
     print(f"[NEW CONNECTION] {address} connected.")
+    server_message(f"{address} joined the chat")
 
     # Send server public key
     client_socket.send(public_pem)
@@ -65,6 +79,7 @@ def handle_client(client_socket, address):
 
     # Remove client on disconnect
     print(f"[DISCONNECTED] {address} left the chat.")
+    server_message(f"{address} left the chat.")
     del clients[address]
     client_socket.close()
 

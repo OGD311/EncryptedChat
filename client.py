@@ -59,7 +59,10 @@ def client(serverIP):
 
             if message.lower() == "exit":
                 print("[Closing connection]")
-                client_socket.close()
+                try:
+                    client_socket.close()
+                except:
+                    pass
                 break
 
             # Encrypt message with server's public key
